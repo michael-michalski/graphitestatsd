@@ -75,6 +75,15 @@ RUN touch /var/log/supervisor/supervisord.log \
 
 WORKDIR /var/log/supervisor
 
+ADD nginx-selfsigned.crt /etc/ssl/certs/nginx-selfsigned.crt
+ADD nginx-selfsigned.key /etc/ssl/private/nginx-selfsigned.key
+
+RUN chown graphite /etc/ssl/certs/nginx-selfsigned.crt && \
+    chown graphite /etc/ssl/private/nginx-selfsigned.key
+
+RUN chgrp graphite /etc/ssl/certs/nginx-selfsigned.crt && \
+    chgrp graphite /etc/ssl/private/nginx-selfsigned.key
+
 ENV STATSD_INTERFACE udp
 
 USER graphite
