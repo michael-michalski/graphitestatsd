@@ -1,19 +1,12 @@
-ARG ALPINE_VERSION
+ARG ALPINE_VERSION=3.11.6
 
 FROM alpine:$ALPINE_VERSION
 
-RUN apk add --update --no-cache nginx nodejs nodejs-npm git curl wget gcc ca-certificates \
+RUN apk add --update --no-cache nginx nodejs git wget gcc ca-certificates \
                                     python3-dev py3-pip musl-dev libffi-dev cairo supervisor bash                    &&\
-        apk --no-cache add ca-certificates wget                                                                      &&\
-        npm config set unsafe-perm tru                                                                               &&\
-        wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub                  &&\
-        wget https://github.com/sgerrand/alpine-pkg-glibc/releases/download/2.28-r0/glibc-2.28-r0.apk                &&\
-        apk add glibc-2.28-r0.apk                                                                                    &&\
-        rm glibc-2.28-r0.apk                                                                                         &&\
-        adduser -D -g 0 graphite                                                                                     &&\
-        pip3 install -U pip pytz gunicorn six wheel                                                                  &&\
-        npm install -g wizzy                                                                                         &&\
-        npm cache clean --force
+        addgroup -g 10001 -S graphite                                                                                &&\
+        adduser -u 10001 -S graphite -G graphite                                                                     &&\
+        pip3 --no-cache-dir install -U pytz gunicorn six wheel
 
 # Checkout the master branches of Graphite, Carbon and Whisper and install from there
 RUN mkdir /src \
@@ -27,15 +20,12 @@ RUN mkdir /src \
         && python3 setup.py install \
         && git clone --depth=1 --branch master https://github.com/graphite-project/graphite-web.git /src/graphite-web \
         && cd /src/graphite-web \
-        && pip3 install . \
+        && pip3 --no-cache-dir install . \
         && python3 setup.py install \
-        && pip3 install -r requirements.txt \
+        && pip3 --no-cache-dir install -r requirements.txt \
         && python3 check-dependencies.py
 
-RUN git clone -b v0.8.4 --depth=1 https://github.com/etsy/statsd.git /opt/statsd
-
-# Cleanup Compile Dependencies
-RUN apk del --no-cache git gcc python-dev musl-dev libffi-dev npm py-pip wget nodejs-npm
+RUN git clone -b v0.8.6 --depth=1 https://github.com/etsy/statsd.git /opt/statsd
 
 # Configure StatsD
 ADD ./graphite/statsd/config.js /opt/statsd/config.js
@@ -61,28 +51,33 @@ RUN mkdir /var/log/supervisor && mkdir -p /var/tmp/nginx
 ADD ./graphite/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 ADD graphite/logrotate.d/graphitestatsd /etc/logrotate.d/graphitestatsd
 
-RUN chown -R graphite:0 /opt/graphite && chmod -R g+w /opt/graphite
+RUN chown -R graphite:graphite /opt/graphite && chmod -R g+w /opt/graphite
 
-RUN touch /var/log/supervisor/supervisord.log \
-  && touch /var/log/supervisord.pid \
-  && chown -R graphite:0 /var/log && chmod -R 775 /var/log \
-  && chmod -R 775 /var/log/supervisor/supervisord.log \
-  && chown -R graphite:0 /run && chmod -R 775 /run \
-  && chown -R graphite:0 /var/lib/nginx && chmod -R 775 /var/lib/nginx \
-  && chown -R graphite:0 /var/tmp/nginx && chmod -R 775 /var/tmp/nginx \
-  && sed -i.bak 's/^user/#user/' /etc/nginx/nginx.conf \
-  && rm -rf /src
+RUN     touch /var/log/supervisor/supervisord.log \
+        && touch /var/log/supervisord.pid \
+        && chown -R graphite:graphite /var/log \
+        && chown -R graphite:graphite /run && chmod -R 775 /run \
+        && chown -R graphite:graphite /var/lib/nginx && chmod -R 775 /var/lib/nginx \
+        && chown -R graphite:graphite /var/tmp/nginx && chmod -R 775 /var/tmp/nginx \
+        && sed -i.bak 's/^user/#user/' /etc/nginx/nginx.conf \
+        && rm -rf /src
 
 WORKDIR /var/log/supervisor
 
-ADD nginx-selfsigned.crt /etc/ssl/certs/nginx-selfsigned.crt
-ADD nginx-selfsigned.key /etc/ssl/private/nginx-selfsigned.key
+# ADD nginx-selfsigned.crt /etc/ssl/certs/nginx-selfsigned.crt
+# ADD nginx-selfsigned.key /etc/ssl/private/nginx-selfsigned.key
 
-RUN chown graphite /etc/ssl/certs/nginx-selfsigned.crt && \
-    chown graphite /etc/ssl/private/nginx-selfsigned.key
+# RUN chown graphite /etc/ssl/certs/nginx-selfsigned.crt && \
+#     chown graphite /etc/ssl/private/nginx-selfsigned.key
 
-RUN chgrp graphite /etc/ssl/certs/nginx-selfsigned.crt && \
-    chgrp graphite /etc/ssl/private/nginx-selfsigned.key
+# RUN chgrp graphite /etc/ssl/certs/nginx-selfsigned.crt && \
+#     chgrp graphite /etc/ssl/private/nginx-selfsigned.key
+
+# Cleanup Compile Dependencies
+RUN scanelf --nobanner -E ET_EXEC -BF '%F' --recursive /usr/bin | xargs -r strip --strip-all \
+  && scanelf --nobanner -E ET_EXEC -BF '%F' --recursive /usr/lib/python3.8 | xargs -r strip --strip-all \
+  && scanelf --nobanner -E ET_DYN -BF '%F' --recursive /usr/lib/python3.8  | xargs -r strip --strip-unneeded \
+  && apk del --no-cache git gcc python3-dev musl-dev libffi-dev py3-pip wget
 
 ENV STATSD_INTERFACE udp
 
