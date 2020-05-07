@@ -4,6 +4,7 @@ FROM alpine:$ALPINE_VERSION
 
 RUN apk add --update --no-cache nginx nodejs git wget gcc ca-certificates \
                                     python3-dev py3-pip musl-dev libffi-dev cairo supervisor bash                    &&\
+        apk upgrade --no-cache --repository http://dl-cdn.alpinelinux.org/alpine/edge/main sqlite-libs               &&\
         addgroup -g 10001 -S graphite                                                                                &&\
         adduser -u 10001 -S graphite -G graphite                                                                     &&\
         pip3 --no-cache-dir install -U pytz gunicorn six wheel
