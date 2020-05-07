@@ -77,6 +77,7 @@ WORKDIR /var/log/supervisor
 RUN scanelf --nobanner -E ET_EXEC -BF '%F' --recursive /usr/bin | xargs -r strip --strip-all \
   && scanelf --nobanner -E ET_EXEC -BF '%F' --recursive /usr/lib/python3.8 | xargs -r strip --strip-all \
   && scanelf --nobanner -E ET_DYN -BF '%F' --recursive /usr/lib/python3.8  | xargs -r strip --strip-unneeded \
+  && find /usr/lib/python3.8 -name '__pycache__' -delete -print -o -name '*.pyc' -delete -print \
   && apk del --no-cache git gcc python3-dev musl-dev libffi-dev py3-pip wget
 
 ENV STATSD_INTERFACE udp
