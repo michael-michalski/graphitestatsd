@@ -2,12 +2,11 @@ ARG ALPINE_VERSION=3.11.6
 
 FROM alpine:$ALPINE_VERSION
 
-RUN apk add --update --no-cache nginx nodejs git wget gcc ca-certificates \
-                                    python3-dev py3-pip musl-dev libffi-dev cairo supervisor bash                    &&\
-        apk upgrade --no-cache --repository http://dl-cdn.alpinelinux.org/alpine/edge/main sqlite-libs               &&\
+RUN apk add --update --no-cache nginx nodejs git gcc ca-certificates python3-dev py3-pip musl-dev libffi-dev cairo supervisor &&\
+        apk upgrade --no-cache --repository http://dl-cdn.alpinelinux.org/alpine/edge/main gcc sqlite-libs           &&\
+        pip3 install -U pip pytz gunicorn six wheel                                                                  &&\
         addgroup -g 10001 -S graphite                                                                                &&\
-        adduser -u 10001 -S graphite -G graphite                                                                     &&\
-        pip3 --no-cache-dir install -U pytz gunicorn six wheel
+        adduser -u 10001 -S graphite -G graphite
 
 # Checkout the master branches of Graphite, Carbon and Whisper and install from there
 RUN mkdir /src \
@@ -38,7 +37,6 @@ ADD     ./graphite/graphite/storage-schemas.conf /opt/graphite/conf/storage-sche
 ADD     ./graphite/graphite/storage-aggregation.conf /opt/graphite/conf/storage-aggregation.conf
 RUN     mkdir -p /opt/graphite/storage/whisper                                                                       &&\
         mkdir -p /opt/graphite/storage/log/webapp                                                                    &&\
-        touch /opt/graphite/storage/log/webapp/info.log                                                              &&\
         touch /opt/graphite/storage/graphite.db /opt/graphite/storage/index                                          &&\
         chown -R graphite /opt/graphite/storage                                                                      &&\
         chmod 0775 /opt/graphite/storage /opt/graphite/storage/whisper                                               &&\
@@ -48,22 +46,15 @@ RUN     mkdir -p /opt/graphite/storage/whisper                                  
 
 # Configure nginx and supervisord
 ADD ./graphite/nginx/nginx.conf /etc/nginx/nginx.conf
-RUN mkdir /var/log/supervisor && mkdir -p /var/tmp/nginx
 ADD ./graphite/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-ADD graphite/logrotate.d/graphitestatsd /etc/logrotate.d/graphitestatsd
 
 RUN chown -R graphite:graphite /opt/graphite && chmod -R g+w /opt/graphite
 
-RUN     touch /var/log/supervisor/supervisord.log \
-        && touch /var/log/supervisord.pid \
-        && chown -R graphite:graphite /var/log \
-        && chown -R graphite:graphite /run && chmod -R 775 /run \
+RUN chown -R graphite:graphite /run && chmod -R 775 /run \
         && chown -R graphite:graphite /var/lib/nginx && chmod -R 775 /var/lib/nginx \
-        && chown -R graphite:graphite /var/tmp/nginx && chmod -R 775 /var/tmp/nginx \
-        && sed -i.bak 's/^user/#user/' /etc/nginx/nginx.conf \
         && rm -rf /src
 
-WORKDIR /var/log/supervisor
+WORKDIR /var/run/supervisor
 
 # ADD nginx-selfsigned.crt /etc/ssl/certs/nginx-selfsigned.crt
 # ADD nginx-selfsigned.key /etc/ssl/private/nginx-selfsigned.key
@@ -79,7 +70,7 @@ RUN scanelf --nobanner -E ET_EXEC -BF '%F' --recursive /usr/bin | xargs -r strip
   && scanelf --nobanner -E ET_EXEC -BF '%F' --recursive /usr/lib/python3.8 | xargs -r strip --strip-all \
   && scanelf --nobanner -E ET_DYN -BF '%F' --recursive /usr/lib/python3.8  | xargs -r strip --strip-unneeded \
   && find /usr/lib/python3.8 -name '__pycache__' -delete -print -o -name '*.pyc' -delete -print \
-  && apk del --no-cache git gcc python3-dev musl-dev libffi-dev py3-pip wget
+  && apk del --no-cache git gcc python3-dev musl-dev libffi-dev py3-pip scanelf
 
 ENV STATSD_INTERFACE udp
 
