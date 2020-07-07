@@ -1,5 +1,5 @@
 # GraphiteStatsd
-An docker image combining [carbon](https://github.com/graphite-project/carbon), [whisper](https://github.com/graphite-project/whisper), [graphite](https://github.com/graphite-project/graphite-web), [statsd](https://github.com/etsy/statsd) and nginx to create an all encompassing metric solution.
+A docker image combining [carbon](https://github.com/graphite-project/carbon), [whisper](https://github.com/graphite-project/whisper), [graphite](https://github.com/graphite-project/graphite-web), [statsd](https://github.com/etsy/statsd) and nginx to create an all encompassing metric solution.
 
 Reasons for using this image.
 
