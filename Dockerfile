@@ -1,4 +1,4 @@
-ARG ALPINE_VERSION=3.11.6
+ARG ALPINE_VERSION=3.12.0
 
 FROM alpine:$ALPINE_VERSION
 
@@ -56,21 +56,12 @@ RUN chown -R graphite:graphite /run && chmod -R 775 /run \
 
 WORKDIR /var/run/supervisor
 
-# ADD nginx-selfsigned.crt /etc/ssl/certs/nginx-selfsigned.crt
-# ADD nginx-selfsigned.key /etc/ssl/private/nginx-selfsigned.key
-
-# RUN chown graphite /etc/ssl/certs/nginx-selfsigned.crt && \
-#     chown graphite /etc/ssl/private/nginx-selfsigned.key
-
-# RUN chgrp graphite /etc/ssl/certs/nginx-selfsigned.crt && \
-#     chgrp graphite /etc/ssl/private/nginx-selfsigned.key
-
 # Cleanup Compile Dependencies
 RUN scanelf --nobanner -E ET_EXEC -BF '%F' --recursive /usr/bin | xargs -r strip --strip-all \
-  && scanelf --nobanner -E ET_EXEC -BF '%F' --recursive /usr/lib/python3.8 | xargs -r strip --strip-all \
-  && scanelf --nobanner -E ET_DYN -BF '%F' --recursive /usr/lib/python3.8  | xargs -r strip --strip-unneeded \
-  && find /usr/lib/python3.8 -name '__pycache__' -delete -print -o -name '*.pyc' -delete -print \
-  && apk del --no-cache git gcc python3-dev musl-dev libffi-dev py3-pip scanelf
+ && scanelf --nobanner -E ET_EXEC -BF '%F' --recursive /usr/lib/python3.8 | xargs -r strip --strip-all \
+ && scanelf --nobanner -E ET_DYN -BF '%F' --recursive /usr/lib/python3.8  | xargs -r strip --strip-unneeded \
+ && find /usr/lib/python3.8 -name '__pycache__' -delete -print -o -name '*.pyc' -delete -print \
+ && apk del --no-cache git gcc python3-dev musl-dev libffi-dev scanelf
 
 ENV STATSD_INTERFACE udp
 

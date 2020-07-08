@@ -1,7 +1,7 @@
 IMAGE_NAME ?= michaelmichalski/graphitestatsd
 
 ifndef ALPINE_VERSION
-override ALPINE_VERSION=3.11.6
+override ALPINE_VERSION=3.12.0
 endif
 
 build:
