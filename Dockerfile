@@ -2,7 +2,7 @@ ARG ALPINE_VERSION=3.12.0
 
 FROM alpine:$ALPINE_VERSION
 
-RUN apk add --update --no-cache nginx nodejs git gcc ca-certificates python3-dev py3-pip musl-dev libffi-dev cairo supervisor &&\
+RUN apk add --update --no-cache nginx nodejs-current git gcc ca-certificates python3-dev py3-pip musl-dev libffi-dev cairo supervisor &&\
         apk upgrade --no-cache --repository http://dl-cdn.alpinelinux.org/alpine/edge/main gcc sqlite-libs           &&\
         pip3 install -U pip pytz gunicorn six wheel                                                                  &&\
         addgroup -g 10001 -S graphite                                                                                &&\
@@ -61,7 +61,7 @@ RUN scanelf --nobanner -E ET_EXEC -BF '%F' --recursive /usr/bin | xargs -r strip
  && scanelf --nobanner -E ET_EXEC -BF '%F' --recursive /usr/lib/python3.8 | xargs -r strip --strip-all \
  && scanelf --nobanner -E ET_DYN -BF '%F' --recursive /usr/lib/python3.8  | xargs -r strip --strip-unneeded \
  && find /usr/lib/python3.8 -name '__pycache__' -delete -print -o -name '*.pyc' -delete -print \
- && apk del --no-cache git gcc python3-dev musl-dev libffi-dev scanelf
+ && apk del --no-cache git gcc python3-dev musl-dev libffi-dev scanelf libc-utils musl-utils
 
 ENV STATSD_INTERFACE udp
 
